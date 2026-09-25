@@ -24,7 +24,7 @@ export default function CatalogoScreen() {
     () =>
       categoria === 'todas'
         ? PRODUTOS_TESTE
-        : PRODUTOS_TESTE.filter((p) => p.category === categoria),
+        : PRODUTOS_TESTE.filter((p: Produto) => p.category === categoria),
     [categoria]
   );
 
