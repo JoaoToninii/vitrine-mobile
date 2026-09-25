@@ -1,101 +1,56 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { CORES } from "@/constants/tema";
-import { Produto } from "@/types/produto";
-import { Avaliacao } from "./Avaliacao";
+import { memo } from 'react';
+import { Image, Pressable, Text, View } from 'react-native';
+import { Produto } from '@/types/produto';
 
 interface CardProdutoProps {
   produto: Produto;
-  destaque?: boolean;
+  favorito: boolean;
+  aoAlternarFavorito: (id: number) => void;
+  aoAbrir: (id: number) => void;
 }
 
-export function CardProduto({ produto, destaque = false }: CardProdutoProps) {
-  const temDesconto = typeof produto.discountPercentage === "number" && produto.discountPercentage > 0;
-  const precoComDesconto = temDesconto
-    ? produto.price * (1 - produto.discountPercentage / 100)
-    : produto.price;
-
+function CardProdutoBase({
+  produto,
+  favorito,
+  aoAlternarFavorito,
+  aoAbrir,
+}: CardProdutoProps) {
   return (
-    <View style={[styles.card, destaque && styles.cardDestaque]}>
-      <Text style={styles.titulo} numberOfLines={2}>{produto.title}</Text>
-      <Text style={styles.categoria}>{produto.category}</Text>
+    <View className="flex-row items-center gap-3 bg-slate-100 dark:bg-superficie rounded-card p-3">
+      <Image
+        source={{ uri: produto.thumbnail }}
+        className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-fundo"
+      />
 
-      {/* Componente de avaliação com 1 a 5 estrelas */}
-      <Avaliacao rating={produto.rating} />
-
-      {/* Preço com desconto aplicado e preço original riscado */}
-      <View style={styles.blocoPreco}>
-        {temDesconto && (
-          <View style={styles.linhaDesconto}>
-            <Text style={styles.precoOriginal}>
-              R$ {produto.price.toFixed(2)}
-            </Text>
-            <View style={styles.tagDesconto}>
-              <Text style={styles.textoTag}>
-                -{produto.discountPercentage.toFixed(0)}%
-              </Text>
-            </View>
-          </View>
-        )}
-        <Text style={styles.precoFinal}>
-          R$ {precoComDesconto.toFixed(2)}
+      <Pressable
+        onPress={() => aoAbrir(produto.id)}
+        className="flex-1 active:opacity-70"
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir ${produto.title}`}
+      >
+        <Text className="text-slate-900 dark:text-white text-[15px] font-semibold" numberOfLines={2}>
+          {produto.title}
         </Text>
-      </View>
+        <Text className="text-slate-500 dark:text-suave text-xs mt-0.5">
+          {produto.brand ?? 'Sem marca'}
+        </Text>
+        <Text className="text-sky-700 dark:text-destaque text-[17px] mt-1.5">
+          R$ {produto.price.toFixed(2)}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => aoAlternarFavorito(produto.id)}
+        accessibilityRole="button"
+        accessibilityLabel={favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+        className="min-w-[44px] min-h-[44px] items-center justify-center active:opacity-60"
+      >
+        <Text className="text-sky-600 dark:text-destaque text-2xl">
+          {favorito ? '♥' : '♡'}
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: CORES.superficie,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flex: 1,
-  },
-  cardDestaque: {
-    borderWidth: 2,
-    borderColor: CORES.destaque,
-  },
-  titulo: {
-    color: CORES.texto,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  categoria: {
-    color: CORES.textoSuave,
-    fontSize: 12,
-    marginTop: 2,
-    textTransform: "capitalize",
-  },
-  blocoPreco: {
-    marginTop: 10,
-  },
-  linhaDesconto: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  precoOriginal: {
-    color: CORES.textoSuave,
-    fontSize: 13,
-    textDecorationLine: "line-through",
-  },
-  tagDesconto: {
-    backgroundColor: "#EF4444",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  textoTag: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "bold",
-  },
-  precoFinal: {
-    color: CORES.destaque,
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 2,
-  },
-});
+export const CardProduto = memo(CardProdutoBase);

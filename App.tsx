@@ -188,7 +188,12 @@ export default function App() {
                   { width: isDuasColunas ? "48.5%" : "100%" },
                 ]}
               >
-                <CardProduto produto={produto} />
+                <CardProduto
+                  produto={produto}
+                  favorito={false}
+                  aoAlternarFavorito={() => undefined}
+                  aoAbrir={() => undefined}
+                />
               </View>
             ))}
           </View>

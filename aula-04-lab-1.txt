@@ -1,0 +1,1026 @@
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 1
+AULA 04 | LABORATÓRIO | 120 MINUTOS
+NativeWind na Vitrine: do StyleSheet às classes
+Estilos com TailwindCSS e NativeWind
+O QUE VOCÊ VAI CONSTRUIR
+Instalar e configurar o NativeWind no projeto, declarar a paleta da Vitrine como tokens do Tailwind,
+converter os quatro componentes já criados para classes utilitárias e entregar o aplicativo funcionando em
+tema claro e escuro, com um botão que alterna entre os dois.
+ANTES DE COMEÇAR — confira
+n Commit aula03 concluído, com a CatalogoScreen funcionando no celular.
+n Terminal aberto na raiz do projeto, onde fica o package.json.
+n Servidor de desenvolvimento parado antes de começar a instalação.
+n Quando um passo mostrar um arquivo que você já tem, apague o conteúdo antigo e cole o novo por
+inteiro. Colar por cima deixa a linha de import velha sobrando no arquivo.
+1 1. Confirme de onde você está partindo
+Antes de instalar qualquer coisa, confirme que o encontro 3 está inteiro. Instalar biblioteca sobre projeto
+quebrado transforma um problema em dois, e depois não há como saber qual mensagem veio de onde.
+Terminal
+cd C:\dev\fatec-mobile\vitrine-mobile
+git status
+npm run check
+Confira: O git status não lista alteração pendente e o npm run check termina sem erro nenhum. Se houver
+arquivo modificado, comite antes de seguir — você vai querer comparar o antes e o depois.
+Atenção: Se o npm run check acusar erro, resolva agora. A partir do passo 3 as mensagens novas se misturam
+com as do NativeWind, e separar umas das outras custa meia aula.
+2 2. Pare o servidor de desenvolvimento
+O Metro lê a configuração do projeto uma única vez, quando sobe. Instalar biblioteca e criar arquivo de
+configuração com ele rodando produz o pior cenário: metade da configuração antiga, metade da nova, e
+nenhuma mensagem que explique isso.
+n No terminal onde o Expo está rodando, pressione Ctrl+C.
+n Confirme que o prompt do PowerShell voltou e aceita comandos.
+n Deixe o Expo Go aberto no celular: ele reconecta sozinho no passo 12.
+Confira: O terminal voltou ao prompt e não mostra mais o QR Code.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 2
+3 3. Instale as três bibliotecas
+Use npx expo install, e não npm install: o Expo consulta o SDK 57 e escolhe a versão compatível de cada
+pacote. O npm install traria a mais recente, que nem sempre é a certa para este SDK.
+n nativewind — o tradutor. Converte as classes em objetos de estilo do React Native durante a compilação.
+n tailwindcss — o dono das classes: a escala de espaçamento, a paleta padrão e o arquivo de configuração
+são dele. Precisa ser a versão 3, porque o NativeWind 4 ainda não acompanha a 4.
+n react-native-reanimated — exigido pelo NativeWind para animar transições de classe. Você não vai
+escrever animação hoje, mas sem ele a biblioteca não carrega.
+Terminal
+npx expo install nativewind tailwindcss react-native-reanimated
+Confira: Abra o package.json e confirme as três em dependencies. O tailwindcss precisa estar em ^3.4; se
+aparecer 4.x, rode npm install tailwindcss@^3.4.
+4 4. Instale também o babel-preset-expo
+Este passo não está na documentação do NativeWind, e é o que mais trava o laboratório. O SDK 57 não deixa
+o babel-preset-expo na raiz do node_modules: ele fica dentro de node_modules/expo/node_modules.
+Enquanto ninguém escreve um babel.config.js isso não faz diferença, porque quem usa o preset é o próprio
+Expo, que sabe onde ele está. No passo 8 você escreve esse arquivo, e o Babel passa a procurar o preset a
+partir da raiz do projeto — onde ele não está.
+Terminal
+npx expo install babel-preset-expo --dev
+Confira: A pasta node_modules/babel-preset-expo passa a existir e o pacote aparece em devDependencies
+no package.json.
+Atenção: Pulando este passo, o erro só aparece no passo 12, assim: Cannot find module
+'babel-preset-expo', seguido de Cannot read properties of undefined (reading
+'transformFile'). O Metro nem chega a empacotar, e a mensagem não cita o NativeWind — por isso quase
+todo mundo procura no lugar errado.
+5 5. Gere o arquivo de configuração do Tailwind
+O comando cria um tailwind.config.js mínimo na raiz. Ele existe no Tailwind 3 e foi removido no 4 — mais um
+motivo para o projeto ficar na versão 3.
+Terminal
+npx tailwindcss init
+Confira: A resposta é Created Tailwind CSS config file: tailwind.config.js, e o arquivo aparece na raiz, ao lado
+do package.json.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 3
+6 6. Declare a paleta da Vitrine como tokens
+Substitua o conteúdo inteiro do arquivo. Aqui você faz, em escala pequena, o trabalho de tokens do UI
+Engineer: as cores deixam de ser valores soltos espalhados pelo código e viram nomes com significado. São
+as mesmas cinco cores do src/constants/tema.ts — a diferença é que agora elas viram classe.
+n content — a lista de arquivos que o Tailwind varre procurando classes. O que não está aqui não recebe
+estilo.
+n presets — carrega os padrões do NativeWind, que adaptam o Tailwind ao React Native: sem grid, sem
+float, medidas em pontos.
+n theme.extend — acrescenta à paleta padrão em vez de substituí-la. É por isso que você continua tendo
+bg-slate-100 e text-white ao lado dos seus tokens.
+n darkMode: 'class' — o tema deixa de vir apenas do sistema operacional e passa a ser controlável por
+código. É o que torna possível o botão do passo 20.
+n Cada token vira sufixo de classe: fundo gera bg-fundo, text-fundo e border-fundo; card gera rounded-card.
+tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+darkMode: 'class',
+content: ['./App.tsx', './src/**/*.{js,jsx,ts,tsx}'],
+presets: [require('nativewind/preset')],
+theme: {
+extend: {
+colors: {
+fundo: '#0F1B33',
+superficie: '#1D3B73',
+destaque: '#61DAFB',
+alerta: '#F0A500',
+suave: '#CBD5E1',
+},
+borderRadius: {
+card: '12px',
+},
+},
+},
+plugins: [],
+};
+Atenção: Se você criar componentes numa pasta fora de src/, precisa acrescentá-la em content. Classe em
+arquivo não listado simplesmente não funciona, e sem mensagem de erro — é o sintoma mais confuso desta
+aula.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 4
+7 7. Crie o arquivo CSS de entrada
+Crie global.css na raiz do projeto, ao lado do package.json. É o único CSS que a Vitrine terá, e ele não vai
+para o celular: serve para o NativeWind saber quais famílias de classe precisa gerar.
+global.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+Confira: O arquivo tem exatamente três linhas e está na raiz — não dentro de src/.
+Atenção: O VS Code sublinha @tailwind como regra desconhecida. É aviso do editor, não erro do projeto: a
+extensão Tailwind CSS IntelliSense, instalada no encontro 1, faz o aviso sumir.
+8 8. Configure o Babel
+Crie babel.config.js na raiz. É este arquivo que habilita a prop className: o jsxImportSource manda o
+compilador montar o JSX com a versão do NativeWind dos componentes, no lugar da versão original do React
+Native.
+babel.config.js
+module.exports = function (api) {
+api.cache(true);
+return {
+presets: [
+['babel-preset-expo', { jsxImportSource: 'nativewind' }],
+'nativewind/babel',
+],
+};
+};
+Confira: O arquivo existe na raiz. Ainda não há como testá-lo: isso é o passo 12.
+Atenção: A ordem dos dois presets importa, e o api.cache(true) não é decoração — sem ele o Babel
+reprocessa a configuração a cada arquivo, e o empacotamento fica lento a ponto de parecer travado.
+9 9. Configure o Metro
+Crie metro.config.js na raiz. O Metro é o empacotador: lê os seus arquivos e produz o pacote JavaScript que
+vai para o celular. O withNativeWind envolve a configuração padrão do Expo e acrescenta o passo que lê o
+global.css.
+metro.config.js
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+const config = getDefaultConfig(__dirname);
+module.exports = withNativeWind(config, { input: './global.css' });
+Confira: Os quatro arquivos — tailwind.config.js, global.css, babel.config.js e metro.config.js — estão na
+raiz, lado a lado com o package.json.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 5
+10 10. Ensine o TypeScript sobre className e sobre o CSS
+Crie nativewind-env.d.ts na raiz. Ele resolve duas coisas de uma vez, e as duas linhas são necessárias.
+n A primeira linha acrescenta a prop className aos tipos dos componentes do React Native. Sem ela, o
+editor sublinha className em todo componente como propriedade inexistente.
+n A segunda linha avisa o TypeScript de que importar um arquivo .css é legítimo. Sem ela, o import do
+próximo passo derruba o npm run check com TS2882: Cannot find module or type
+declarations for side-effect import of './global.css'.
+n Um arquivo .d.ts é só de declarações: não vira código nenhum no aparelho, existe apenas para o
+compilador.
+nativewind-env.d.ts
+/// <reference types="nativewind/types" />
+declare module '*.css';
+Confira: Depois de recarregar a janela do VS Code (Ctrl+Shift+P → Developer: Reload Window), className
+deixa de aparecer sublinhado em vermelho.
+11 11. Importe o CSS no ponto de entrada
+O import do global.css precisa estar no App.tsx, de preferência na primeira linha. Repare que o
+SafeAreaProvider continua envolvendo tudo: é ele que mede as bordas do aparelho, e é dele que o
+SafeAreaView da tela tira essa medida. Removê-lo deixa a tela sem valor para consultar.
+App.tsx
+import './global.css';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { CatalogoScreen } from '@/screens/CatalogoScreen';
+export default function App() {
+return (
+<SafeAreaProvider>
+<CatalogoScreen />
+<StatusBar style="light" />
+</SafeAreaProvider>
+);
+}
+Confira: Rode npm run check: precisa terminar limpo. Se acusar o TS2882, falta a segunda linha do arquivo do
+passo 10.
+Atenção: O import do CSS não tem chaves e não guarda nada em variável: é um import de efeito colateral, que
+existe só para o empacotador saber que aquele arquivo faz parte do projeto.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 6
+12 12. Reinicie limpando o cache
+O Metro guarda em cache o resultado de cada arquivo já processado, e esse cache não sabe que a
+configuração mudou. A flag -c descarta tudo e reconstrói. Pular isso é a terceira causa mais comum de classe
+que não faz nada.
+Terminal
+npx expo start --go -c
+Confira: O terminal mostra Bundler cache is empty, rebuilding e depois o QR Code. O aplicativo abre no
+celular ainda com a aparência do encontro 3: nada deve ter mudado visualmente. A primeira compilação com
+cache vazio leva de 30 a 60 segundos — é normal.
+Atenção: Repare numa linha do terminal: NativeWind made the following changes to your project. Ele edita o
+seu tsconfig.json sozinho, acrescentando o nativewind-env.d.ts ao include. Não é invasão nem erro: é esperado,
+e essa alteração deve ser comitada junto. Quem não sabe disso encontra depois um arquivo modificado que jura
+não ter tocado.
+13 13. Teste a configuração com uma classe só
+Não converta os quatro componentes de uma vez. Dez arquivos já entraram na história até aqui; se algum
+estiver errado, você descobre no meio da conversão e não saberá se a culpa é da configuração ou da classe
+que acabou de escrever. Valide antes, com uma classe que não deixa dúvida.
+n Abra src/screens/CatalogoScreen.tsx.
+n No <SafeAreaView>, acrescente className="bg-alerta" ao lado do style que já existe.
+n Salve e olhe o celular: o fundo da tela deve ficar âmbar.
+n Ficou? A configuração está correta. Remova a classe e vá para o passo 14.
+n Não ficou? Pare aqui e resolva pela tabela Quando der errado. Converter tudo com a configuração
+quebrada gera meia hora de confusão.
+Confira: O fundo mudou de cor no celular sem você reiniciar nada — o Fast Refresh dá conta.
+Atenção: O bg-alerta só funciona porque você declarou o token alerta no passo 6. Se ele não pintar mas
+bg-red-500 pintar, o problema não é a instalação: é o tailwind.config.js.
+14 14. Converta o CardProduto
+Comece pelo componente mais rico, porque ele exercita quase toda a gramática de uma vez. Apague o arquivo
+inteiro antes de colar a versão nova — inclusive a linha de import lá em cima, que muda. O resultado visual
+precisa ficar idêntico ao do encontro 3.
+n O import do StyleSheet sumiu, e o de CORES também: o cartão não consulta mais o tema.ts, porque as
+cores agora são classe.
+n gap-3 é 12, p-3 é 12, mb-3 é 12: a escala é de 4 em 4, então o número da classe é sempre o valor dividido
+por 4.
+n rounded-card é o token que você criou. Trocar o raio de todos os cartões da Vitrine virou uma linha no
+config.
+n text-[15px] e min-w-[44px] usam colchetes porque 15 e 44 não estão na escala. Os 44 pontos são o alvo
+mínimo de toque recomendado — não invente outro valor.
+n active:opacity-60 é novo: aplica enquanto o dedo está pressionando. É o equivalente móvel do hover: da
+web, e não existia no StyleSheet.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 7
+src/components/CardProduto.tsx
+import { Image, Pressable, Text, View } from 'react-native';
+import { Produto } from '@/types/produto';
+interface CardProdutoProps {
+produto: Produto;
+favorito: boolean;
+aoAlternarFavorito: (id: number) => void;
+}
+export function CardProduto({
+produto,
+favorito,
+aoAlternarFavorito,
+}: CardProdutoProps) {
+return (
+<View className="flex-row items-center gap-3 bg-superficie rounded-card p-3 mb-3">
+<Image
+source={{ uri: produto.thumbnail }}
+className="w-16 h-16 rounded-lg bg-fundo"
+/>
+<View className="flex-1">
+<Text className="text-white text-[15px] font-semibold" numberOfLines={2}>
+{produto.title}
+</Text>
+<Text className="text-suave text-xs mt-0.5">
+{produto.brand ?? 'Sem marca'}
+</Text>
+<Text className="text-destaque text-[17px] mt-1.5">
+R$ {produto.price.toFixed(2)}
+</Text>
+</View>
+<Pressable
+onPress={() => aoAlternarFavorito(produto.id)}
+accessibilityRole="button"
+accessibilityLabel={
+favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+}
+className="min-w-[44px] min-h-[44px] items-center justify-center
+active:opacity-60"
+>
+<Text className="text-destaque text-2xl">{favorito ? 'H' : 'n'}</Text>
+</Pressable>
+</View>
+);
+}
+Confira: O cartão está visualmente igual ao do encontro 3, e agora responde ao toque com uma leve
+transparência. Rode npm run check: se acusar Duplicate identifier, sobrou linha de import da versão antiga.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 8
+15 15. Converta o Cabecalho
+Um de cada vez, salvando e conferindo no celular entre um e outro. Apague o arquivo antes de colar. Repare
+que o componente encolheu pela metade: as 20 linhas de StyleSheet no rodapé simplesmente deixaram de
+existir.
+n flex-row items-center justify-between é a linha do Flexbox do encontro 3, escrita em três classes em vez
+de três propriedades.
+n flex-1 no título é o que empurra o selo para a direita e faz o título ocupar o resto.
+n rounded-full substitui o borderRadius: 999. É a mesma ideia, com nome melhor.
+n px-2.5 vale 10 e py-1.5 vale 6: a escala aceita meio passo.
+src/components/Cabecalho.tsx
+import { Text, View } from 'react-native';
+interface CabecalhoProps {
+titulo: string;
+favoritos: number;
+}
+export function Cabecalho({ titulo, favoritos }: CabecalhoProps) {
+return (
+<View className="flex-row items-center justify-between mb-4">
+<Text className="flex-1 text-destaque text-[26px] font-bold">
+{titulo}
+</Text>
+<View className="bg-superficie rounded-full px-2.5 py-1.5">
+<Text className="text-white text-xs">{favoritos} favoritos</Text>
+</View>
+</View>
+);
+}
+Confira: O cabeçalho está igual: título ciano à esquerda, selo arredondado à direita, contador funcionando ao
+favoritar.
+16 16. Converta o FiltroCategorias e conserte o chip esticado
+Este é o componente com as três armadilhas da aula. A primeira: o ScrollView não tem só a prop style — ele
+tem também a contentContainerStyle, e cada uma vira uma classe diferente. A segunda e a terceira estão
+nos tópicos, e as duas são defeitos que vêm do encontro 3: aproveite que está reescrevendo o arquivo para
+corrigi-los.
+n contentContainerClassName é a única prop de estilo com nome próprio. A regra do NativeWind é geral:
+onde havia xStyle, passa a haver xClassName.
+n items-start conserta o chip esticado. Num ScrollView horizontal o alinhamento padrão é stretch, então
+cada chip crescia até a altura da faixa inteira — no encontro 3 eles ficavam alongados, e ninguém reparou
+porque não havia com o que comparar.
+n grow-0 conserta o vão embaixo dos chips: sem ele o ScrollView ocupa toda a altura que sobra, e a lista de
+produtos é empurrada para baixo.
+n O estilo condicional é uma string montada em JavaScript, com crases. Não há mágica: className aceita
+qualquer string.
+n Repare que não há mais arranjo de estilos. Onde havia style={'{'}[styles.chip, ativa && styles.chipAtivo]{'}'},
+agora há uma classe ou a outra.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 9
+src/components/FiltroCategorias.tsx
+import { Pressable, ScrollView, Text } from 'react-native';
+interface FiltroCategoriasProps {
+categorias: string[];
+selecionada: string;
+aoSelecionar: (categoria: string) => void;
+}
+export function FiltroCategorias({
+categorias,
+selecionada,
+aoSelecionar,
+}: FiltroCategoriasProps) {
+return (
+<ScrollView
+horizontal
+className="grow-0"
+showsHorizontalScrollIndicator={false}
+contentContainerClassName="flex-row items-start gap-2 py-1"
+>
+{categorias.map((categoria) => {
+const ativa = categoria === selecionada;
+return (
+<Pressable
+key={categoria}
+onPress={() => aoSelecionar(categoria)}
+accessibilityRole="button"
+accessibilityLabel={`Filtrar por ${categoria}`}
+className={`px-4 py-2.5 rounded-full active:opacity-60 ${
+ativa ? 'bg-destaque' : 'bg-superficie'
+}`}
+>
+<Text
+className={
+ativa
+? 'text-fundo text-[13px] font-bold'
+: 'text-suave text-[13px]'
+}
+>
+{categoria}
+</Text>
+</Pressable>
+);
+})}
+</ScrollView>
+);
+}
+Confira: Os chips ficaram do tamanho do texto, colados logo abaixo do cabeçalho, e a lista de produtos subiu.
+Compare com a tela do encontro 3: esta é a única diferença visual proposital do laboratório de hoje.
+Atenção: Se os chips continuarem alongados, você colou items-start na prop errada: ele vai em
+contentContainerClassName, não em className.
+17 17. Converta a CatalogoScreen
+A tela é o último arquivo com StyleSheet. Repare que o import de CORES também sai daqui — nenhum
+componente consulta mais o tema.ts, que a partir de agora sobrevive só pela API_BASE_URL, usada no
+encontro 8.
+n Toda a lógica ficou intacta: os dois useState, o filtro, o useEffect. Só o estilo mudou, e é assim que uma
+migração deve parecer.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 10
+n O SafeAreaView vem de uma biblioteca de terceiros e mesmo assim aceita className — o NativeWind 4
+já traz o suporte pronto para ela. Nem toda biblioteca tem, e as que não têm exigem um registro à parte.
+n O pt-10 que existia no encontro 3 sumiu: quem afasta do topo agora é o SafeAreaView, com a medida real
+do aparelho.
+src/screens/CatalogoScreen.tsx
+import { useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Cabecalho } from '@/components/Cabecalho';
+import { CardProduto } from '@/components/CardProduto';
+import { FiltroCategorias } from '@/components/FiltroCategorias';
+import { PRODUTOS } from '@/constants/produtos';
+const CATEGORIAS = ['todas', 'beauty', 'fragrances', 'furniture'];
+export function CatalogoScreen() {
+const [categoria, setCategoria] = useState('todas');
+const [favoritos, setFavoritos] = useState<number[]>([]);
+const visiveis =
+categoria === 'todas'
+? PRODUTOS
+: PRODUTOS.filter((p) => p.category === categoria);
+function alternarFavorito(id: number) {
+setFavoritos((atuais) =>
+atuais.includes(id)
+? atuais.filter((f) => f !== id)
+: [...atuais, id]
+);
+}
+useEffect(() => {
+console.log('categoria selecionada:', categoria);
+}, [categoria]);
+return (
+<SafeAreaView className="flex-1 bg-fundo">
+<View className="flex-1 p-4">
+<Cabecalho titulo="Vitrine" favoritos={favoritos.length} />
+<FiltroCategorias
+categorias={CATEGORIAS}
+selecionada={categoria}
+aoSelecionar={setCategoria}
+/>
+<ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+{visiveis.length === 0 ? (
+<Text className="text-suave text-center mt-10">
+Nenhum produto nesta categoria.
+</Text>
+) : (
+visiveis.map((produto) => (
+<CardProduto
+key={produto.id}
+produto={produto}
+favorito={favoritos.includes(produto.id)}
+aoAlternarFavorito={alternarFavorito}
+/>
+))
+)}
+</ScrollView>
+</View>
+</SafeAreaView>
+);
+}
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 11
+Confira: O aplicativo está igual ao do encontro 3, exceto pelos chips corrigidos. Favorite, filtre, esvazie a lista: os
+quatro comportamentos do encontro 3 continuam funcionando.
+18 18. Confirme que não sobrou StyleSheet
+Uma busca no projeto inteiro fecha a etapa de conversão. Se algo aparecer, é StyleSheet órfão: estilo
+declarado que nenhum componente usa mais.
+n No VS Code, pressione Ctrl+Shift+F e busque por StyleSheet.
+n O resultado esperado é nenhuma ocorrência em src/.
+n Sobrou alguma? Apague o bloco inteiro — inclusive o import lá em cima.
+n Confira também o src/constants/tema.ts: o objeto CORES continua lá, mas agora ninguém o importa.
+Deixe-o: ele documenta a paleta em TypeScript, e as cores viraram token no config.
+Terminal
+npm run check
+git status
+Confira: O npm run check passa limpo e a busca não encontra StyleSheet em src/.
+19 19. Entenda a regra do tema claro antes de escrever
+Até agora a Vitrine só existe em escuro. O prefixo dark: aplica a classe apenas no tema escuro; a classe sem
+prefixo vale no claro. Uma linha resolve os dois. Os três passos seguintes fazem isso arquivo por arquivo, e a
+regra é sempre a mesma:
+n O par se escreve claro primeiro, escuro depois: bg-white dark:bg-fundo lê-se "branco, e azul-escuro no
+tema escuro".
+n Só precisa de prefixo o que muda entre os temas. Tamanho, espaçamento, raio e alinhamento continuam
+sem ele — escrever dark: em tudo é desperdício e polui a linha.
+n O ponto de atenção é o contraste. O ciano #61DAFB é ótimo sobre azul-escuro e ilegível sobre branco: o
+tema claro precisa da sua própria escolha de cor, não da mesma cor.
+n Para o claro vamos usar as escalas slate (cinzas) e sky (azuis) que já vêm no Tailwind. Seus tokens
+continuam servindo ao escuro. Os dois convivem, e é normal que convivam.
+n Nada vai mudar na tela até o passo 22, porque ninguém pediu o tema claro ainda. Não estranhe.
+Confira: Você consegue dizer, sem olhar, o que text-slate-900 dark:text-white faz em cada tema.
+20 20. Tema claro no CardProduto
+Apague o arquivo e cole a versão abaixo. Compare com a do passo 14: a estrutura é idêntica, e a única
+diferença é que cada cor virou um par. É o arquivo com mais cores da Vitrine, e por isso o mais longo dos três.
+src/components/CardProduto.tsx
+import { Image, Pressable, Text, View } from 'react-native';
+import { Produto } from '@/types/produto';
+interface CardProdutoProps {
+produto: Produto;
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 12
+src/components/CardProduto.tsx
+favorito: boolean;
+aoAlternarFavorito: (id: number) => void;
+}
+export function CardProduto({
+produto,
+favorito,
+aoAlternarFavorito,
+}: CardProdutoProps) {
+return (
+<View className="flex-row items-center gap-3 bg-slate-100
+dark:bg-superficie rounded-card p-3 mb-3">
+<Image
+source={{ uri: produto.thumbnail }}
+className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-fundo"
+/>
+<View className="flex-1">
+<Text
+className="text-slate-900 dark:text-white text-[15px] font-semibold"
+numberOfLines={2}
+>
+{produto.title}
+</Text>
+<Text className="text-slate-500 dark:text-suave text-xs mt-0.5">
+{produto.brand ?? 'Sem marca'}
+</Text>
+<Text className="text-sky-700 dark:text-destaque text-[17px] mt-1.5">
+R$ {produto.price.toFixed(2)}
+</Text>
+</View>
+<Pressable
+onPress={() => aoAlternarFavorito(produto.id)}
+accessibilityRole="button"
+accessibilityLabel={
+favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+}
+className="min-w-[44px] min-h-[44px] items-center justify-center
+active:opacity-60"
+>
+<Text className="text-sky-600 dark:text-destaque text-2xl">
+{favorito ? 'H' : 'n'}
+</Text>
+</Pressable>
+</View>
+);
+}
+Confira: O aplicativo continua idêntico no celular, e o npm run check passa limpo. Se algo mudou de cor agora,
+você trocou a ordem do par: o valor do escuro foi para o lugar do claro.
+21 21. Tema claro no FiltroCategorias
+Aqui os pares entram dentro do estilo condicional, o que dobra a quantidade de estados: chip ativo e inativo,
+cada um em dois temas. Repare que items-start, grow-0 e os espaçamentos continuam sem prefixo — eles
+não mudam com o tema.
+src/components/FiltroCategorias.tsx
+import { Pressable, ScrollView, Text } from 'react-native';
+interface FiltroCategoriasProps {
+categorias: string[];
+selecionada: string;
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 13
+src/components/FiltroCategorias.tsx
+aoSelecionar: (categoria: string) => void;
+}
+export function FiltroCategorias({
+categorias,
+selecionada,
+aoSelecionar,
+}: FiltroCategoriasProps) {
+return (
+<ScrollView
+horizontal
+className="grow-0"
+showsHorizontalScrollIndicator={false}
+contentContainerClassName="flex-row items-start gap-2 py-1"
+>
+{categorias.map((categoria) => {
+const ativa = categoria === selecionada;
+return (
+<Pressable
+key={categoria}
+onPress={() => aoSelecionar(categoria)}
+accessibilityRole="button"
+accessibilityLabel={`Filtrar por ${categoria}`}
+className={`px-4 py-2.5 rounded-full active:opacity-60 ${
+ativa
+? 'bg-sky-600 dark:bg-destaque'
+: 'bg-slate-200 dark:bg-superficie'
+}`}
+>
+<Text
+className={
+ativa
+? 'text-white dark:text-fundo text-[13px] font-bold'
+: 'text-slate-600 dark:text-suave text-[13px]'
+}
+>
+{categoria}
+</Text>
+</Pressable>
+);
+})}
+</ScrollView>
+);
+}
+Confira: Nenhuma mudança visível, e o npm run check continua limpo. O chip selecionado ainda é o ciano do
+tema escuro.
+22 22. Tema claro na CatalogoScreen
+O último arquivo do trio. São só duas linhas alteradas — a da tela e a da mensagem de lista vazia —, mas a da
+tela é a que mais aparece: é o fundo inteiro do aplicativo.
+src/screens/CatalogoScreen.tsx
+import { useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Cabecalho } from '@/components/Cabecalho';
+import { CardProduto } from '@/components/CardProduto';
+import { FiltroCategorias } from '@/components/FiltroCategorias';
+import { PRODUTOS } from '@/constants/produtos';
+const CATEGORIAS = ['todas', 'beauty', 'fragrances', 'furniture'];
+export function CatalogoScreen() {
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 14
+src/screens/CatalogoScreen.tsx
+const [categoria, setCategoria] = useState('todas');
+const [favoritos, setFavoritos] = useState<number[]>([]);
+const visiveis =
+categoria === 'todas'
+? PRODUTOS
+: PRODUTOS.filter((p) => p.category === categoria);
+function alternarFavorito(id: number) {
+setFavoritos((atuais) =>
+atuais.includes(id)
+? atuais.filter((f) => f !== id)
+: [...atuais, id]
+);
+}
+useEffect(() => {
+console.log('categoria selecionada:', categoria);
+}, [categoria]);
+return (
+<SafeAreaView className="flex-1 bg-white dark:bg-fundo">
+<View className="flex-1 p-4">
+<Cabecalho titulo="Vitrine" favoritos={favoritos.length} />
+<FiltroCategorias
+categorias={CATEGORIAS}
+selecionada={categoria}
+aoSelecionar={setCategoria}
+/>
+<ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+{visiveis.length === 0 ? (
+<Text className="text-slate-500 dark:text-suave text-center mt-10">
+Nenhum produto nesta categoria.
+</Text>
+) : (
+visiveis.map((produto) => (
+<CardProduto
+key={produto.id}
+produto={produto}
+favorito={favoritos.includes(produto.id)}
+aoAlternarFavorito={alternarFavorito}
+/>
+))
+)}
+</ScrollView>
+</View>
+</SafeAreaView>
+);
+}
+Confira: O aplicativo segue escuro e idêntico. Os três arquivos agora sabem se pintar nos dois temas — falta
+alguém pedir o claro.
+23 23. Acrescente o botão que alterna o tema
+Com darkMode: 'class' no config, quem manda no tema é o código, e não o sistema operacional. O
+NativeWind oferece o hook useColorScheme com o valor atual e a função que alterna. Acrescente o botão ao
+cabeçalho.
+n O useColorScheme vem de 'nativewind', e não do react-native. São dois hooks de mesmo nome e
+comportamentos diferentes: o do React Native só lê a preferência do sistema; o do NativeWind também
+escreve.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 15
+n toggleColorScheme vai direto no onPress, sem seta em volta: ela já é a função a chamar, e não recebe
+argumento.
+n O ícone muda com o tema porque colorScheme é um valor de estado como qualquer outro — o React
+redesenha o cabeçalho quando ele muda.
+n Com darkMode: 'class' o aplicativo abre no tema claro e não acompanha mais o sistema sozinho. Quem
+quiser o comportamento antigo tira a linha do config e perde o botão: são caminhos alternativos, não
+somáveis.
+src/components/Cabecalho.tsx
+import { Pressable, Text, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
+interface CabecalhoProps {
+titulo: string;
+favoritos: number;
+}
+export function Cabecalho({ titulo, favoritos }: CabecalhoProps) {
+const { colorScheme, toggleColorScheme } = useColorScheme();
+return (
+<View className="flex-row items-center justify-between gap-2 mb-4">
+<Text className="flex-1 text-sky-700 dark:text-destaque text-[26px] font-bold">
+{titulo}
+</Text>
+<View className="bg-slate-200 dark:bg-superficie rounded-full px-2.5 py-1.5">
+<Text className="text-slate-900 dark:text-white text-xs">
+{favoritos} favoritos
+</Text>
+</View>
+<Pressable
+onPress={toggleColorScheme}
+accessibilityRole="button"
+accessibilityLabel="Alternar tema claro e escuro"
+className="min-w-[44px] min-h-[44px] items-center justify-center
+active:opacity-60"
+>
+<Text className="text-[20px]">
+{colorScheme === 'dark' ? 'nn' : 'n'}
+</Text>
+</Pressable>
+</View>
+);
+}
+Confira: Toque no botão e a tela inteira troca de tema, na hora. Toque de novo e ela volta. Confira que nenhum
+texto some em nenhum dos dois — texto invisível é falha de contraste, e o projeto final será avaliado por isso.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 16
+24 24. Verifique tudo e comite
+Cinco arquivos novos, cinco alterados. Antes do commit, uma última verificação de tipos e uma leitura do que
+está entrando.
+Terminal
+npm run check
+git status
+git add .
+git commit -m "aula04: NativeWind, tokens da paleta e tema claro/escuro"
+git push
+Confira: O git status lista tailwind.config.js, global.css, babel.config.js, metro.config.js e
+nativewind-env.d.ts como novos, e App.tsx, tsconfig.json, package.json e os quatro componentes como
+alterados. O commit aparece no GitHub.
+CHECKPOINT — feche a aula com um commit
+Todo laboratório termina com um commit. É o histórico do seu repositório que mostra a evolução do
+semestre e é ele que o professor consulta na avaliação.
+npm run check
+git add .
+git commit -m "aula04: NativeWind, tokens da paleta e tema claro/escuro"
+git push
+ENTREGA
+O commit aula04 com os cinco arquivos de configuração, a paleta da Vitrine em tokens no tailwind.config.js,
+os quatro componentes convertidos para classes, nenhum StyleSheet em src/ e o botão de tema
+funcionando nos dois sentidos.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 17
+TERMINOU ANTES? — desafios opcionais
+n 1. Aquecimento. Troque destaque de #61DAFB para #F0A500 no tailwind.config.js, salve e conte
+quantos lugares da tela mudaram. Depois desfaça. É a demonstração mais curta do que um token
+resolve.
+n 2. Aquecimento. Acrescente ao cartão a classe active:scale-95 e sinta a diferença ao tocar. Explique
+em um comentário por que ela precisa do react-native-reanimated para funcionar.
+n 3. Tokens. Crie em theme.extend uma escala de espaçamento própria (por exemplo tela: 16 e bloco:
+12) e use-a em pelo menos dois componentes, no lugar de p-4 e gap-3.
+n 4. Tokens. O token suave só serve ao tema escuro, e no claro você precisou recorrer a slate-500. Crie
+um segundo token para o claro e reescreva os pares para usar apenas tokens seus, sem a paleta
+padrão.
+n 5. Componente. Extraia o chip do FiltroCategorias para um src/components/Chip.tsx próprio, com as
+props rotulo, ativo e aoTocar. O filtro deve encolher para menos de 25 linhas.
+n 6. Componente. Crie um Botao com três variantes — primario, secundario e perigo — controladas por
+uma prop tipada com união de literais (variante: 'primario' | 'secundario' | 'perigo'). Use um objeto que
+mapeia variante para classe, em vez de encadear ternários.
+n 7. Ferramenta. Instale a biblioteca clsx e reescreva com ela o estilo condicional do Chip. Compare as
+duas versões e escreva duas linhas dizendo em que caso ela compensa.
+n 8. Plataforma. Aplique uma sombra ao cartão e compare o resultado no Android e no iOS (ou no
+navegador, com npm run web). Explique em um comentário a diferença encontrada e qual propriedade
+cada plataforma usa.
+n 9. Produto. Mostre o preço com o desconto aplicado, calculado a partir de discountPercentage, com o
+preço original riscado ao lado — a classe line-through resolve. Cuide do contraste nos dois temas.
+n 10. Acessibilidade. Meça o contraste de cada par de cores da sua tela clara em
+webaim.org/resources/contrastchecker e corrija o que ficar abaixo de 4,5:1. Anote os números
+encontrados no README do projeto.
+n 11. Investigação. Descubra por que hover: não faz efeito no celular mas funciona no npm run web, e o
+que o NativeWind faz com essa classe quando a plataforma é nativa.
+Quando der errado
+Se acontecer isto Faça isto
+Cannot find module
+'babel-preset-expo'
+Você pulou o passo 4. No SDK 57 esse pacote fica dentro de
+node_modules/expo/node_modules e o Babel não o enxerga
+a partir da raiz. Rode npx expo install
+babel-preset-expo --dev e reinicie com -c. O sintoma
+seguinte, Cannot read properties of undefined
+(reading 'transformFile'), é consequência do mesmo
+problema.
+TS2882: Cannot find module or type
+declarations for side-effect import of
+'./global.css'
+Falta a linha declare module '*.css'; no
+nativewind-env.d.ts. A referência de tipos do NativeWind sozinha
+não cobre o import do CSS.
+className não existe no tipo — erro
+do TypeScript
+Falta o arquivo nativewind-env.d.ts na raiz, ou ele existe e o
+editor ainda não o leu. Depois de criá-lo, recarregue a janela do VS
+Code com Ctrl+Shift+P → Developer: Reload Window.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 18
+Se acontecer isto Faça isto
+Escrevo a classe e nada acontece,
+sem erro nenhum
+Verifique nesta ordem, que é a da frequência: (1) o arquivo está
+em content no tailwind.config.js? (2) reiniciou com npx expo
+start --go -c? (3) o global.css foi importado no App.tsx? (4) a
+classe existe mesmo — bg-fundo funciona, bg-background não.
+Duplicate identifier 'StyleSheet', 'Text'
+ou 'View'
+Você colou a versão nova do arquivo sem apagar a antiga, e a
+linha de import velha sobrou — quase sempre no fim do arquivo.
+Apague a linha repetida. O import é içado, então a posição dela no
+arquivo não muda nada: o erro aparece igual.
+O tsconfig.json apareceu modificado e
+eu não mexi nele
+Foi o NativeWind, na primeira compilação: ele acrescenta o
+nativewind-env.d.ts ao include e avisa no terminal. É esperado —
+comite a alteração junto.
+Os chips do filtro ficam alongados na
+vertical
+Falta items-start no contentContainerClassName do ScrollView.
+Num ScrollView horizontal o alinhamento padrão é stretch, e cada
+chip cresce até a altura da faixa.
+Sobra um vão grande entre os chips e
+a lista
+Falta grow-0 no className do ScrollView do filtro. Sem ele o
+ScrollView ocupa toda a altura disponível e empurra a lista para
+baixo.
+O botão de tema não faz nada Duas causas: falta darkMode: 'class' no tailwind.config.js (e
+config alterada exige reiniciar com -c), ou o useColorScheme foi
+importado de react-native em vez de nativewind — o do React
+Native só lê o tema, não troca.
+O aplicativo abre claro e eu queria que
+ele seguisse o celular
+É o efeito do darkMode: 'class': o controle passou para o
+código. Para voltar a seguir o sistema, remova essa linha do config
+— e aceite perder o botão do passo 20.
+Erro de Reanimated ao iniciar Instale sempre com npx expo install, que escolhe a versão
+compatível com o SDK, e reinicie limpando o cache.
+Cannot find module 'nativewind/metro' A instalação não concluiu. Rode npx expo install
+nativewind de novo e confira o package.json.
+Funciona no Android e não no iOS (ou
+vice-versa)
+Quase sempre é sombra ou fonte. Consulte a tabela de suporte
+por plataforma na documentação do NativeWind antes de tentar
+consertar no braço.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 19
+Entenda o que você digitou
+Leia depois do laboratório, com o aplicativo já rodando. Colar cinco arquivos de configuração faz as
+classes funcionarem; entender o que cada um faz é o que permite instalar a próxima biblioteca sozinho.
+1. O resultado: a mesma tela, dois temas
+As duas capturas abaixo são do aplicativo que você acabou de escrever, no mesmo instante do laboratório:
+mesma lista, mesmos dois favoritos, mesmo componente. A única diferença entre elas é um toque no botão do
+cabeçalho.
+Tema claro. É como o aplicativo abre a partir do passo 23.
+Repare que o preço não é o ciano: no claro ele vira sky-700,
+senão ficaria ilegível.
+Tema escuro. Um toque no ícone, e cada classe com prefixo
+dark: assume. Nenhum componente foi trocado, nenhuma tela
+foi recarregada.
+n Não existem dois conjuntos de componentes. É um CardProduto, que carrega as duas cores em cada linha
+de classe.
+n O que mudou entre as duas telas foi um valor de estado — o colorScheme —, e o React refez a árvore
+inteira a partir dele. É o mesmo mecanismo do favorito, do encontro 3.
+n Repare no que não mudou: tamanhos, espaçamentos, raios e alinhamento são iguais nos dois. Só a cor
+tem prefixo dark:, e é por isso que a troca não desloca nada.
+EM UMA FRASE
+Um componente, dois temas, zero if. O prefixo dark: é uma condicional que você escreve dentro da classe.
+2. Onde as classes viram estilo, e quando
+A dúvida mais comum da aula é se o Tailwind embute um navegador no aplicativo. Não embute. Tudo acontece
+antes de o código chegar ao celular, e o diagrama abaixo é a ordem exata em que isso ocorre quando você
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 20
+salva um arquivo.
+você escreve className="bg-fundo p-4"
+na compilação
+o Babel lê o babel.config.js
+e troca View pela versão do NativeWind
+na compilação
+o Metro lê o metro.config.js
+e manda o Tailwind varrer o content
+na compilação
+o Tailwind gera o estilo
+de cada classe encontrada
+vai para a rede
+o pacote sai com objetos de estilo
+do React Native, e nenhum CSS
+no aparelho
+o Expo Go recebe o pacote
+e o Fabric desenha views nativas
+n As três primeiras etapas rodam na sua máquina. O celular nunca vê a palavra bg-fundo.
+n É por isso que alterar o tailwind.config.js exige reiniciar: essa etapa já passou, e o resultado está no
+cache do Metro.
+n É também por isso que só funciona o que o React Native entende. Não há navegador para interpretar grid,
+float ou :before.
+n E é por isso que classe montada em tempo de execução não funciona: o Tailwind varre o texto do seu
+arquivo procurando classes. Escrever {'bg-' + cor} não gera estilo nenhum, porque na hora da varredura
+essa classe ainda não existe — por isso o FiltroCategorias escreve as duas classes inteiras no ternário.
+EM UMA FRASE
+Tailwind em React Native é um gerador de StyleSheet que roda na compilação. O aplicativo final não tem
+CSS nenhum.
+3. Os cinco arquivos, e o que quebra sem cada um
+Errar qualquer um dos cinco produz sintomas diferentes, e reconhecer o sintoma é o que evita procurar no
+lugar errado. Esta é a tabela para consultar no dia em que der errado.
+Arquivo Para que serve O que acontece sem ele
+tailwind.config.js Diz onde procurar classes e declara a
+sua paleta
+A classe é ignorada, sem erro. Se
+faltar só o token, bg-fundo não pinta
+mas bg-red-500 pinta
+global.css Entrada da geração: as três diretivas
+do Tailwind
+Nenhuma classe funciona, e não há
+mensagem de erro
+babel.config.js Habilita a prop className no JSX className vira prop desconhecida e
+é descartada em silêncio
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 21
+Arquivo Para que serve O que acontece sem ele
+metro.config.js Liga o empacotador ao global.css O NativeWind não roda: nada de
+estilo é gerado
+nativewind-env.d.ts Tipos do className e do import de
+.css
+O app roda, mas o npm run check
+falha e o editor sublinha tudo
+EM UMA FRASE
+Quatro dos cinco falham em silêncio. Só o último dá mensagem — e por isso é o único fácil.
+4. A gramática de uma classe
+Toda classe do Tailwind segue o mesmo desenho, e reconhecer as quatro partes economiza muita ida à
+documentação. Leia a tabela com o CardProduto aberto ao lado.
+No código O que significa
+p-4 Propriedade e valor. A letra é a propriedade (p de padding), o
+número é o passo da escala. Como a escala é de 4 em 4, p-4
+vale 16.
+px-4 py-2.5 Eixo. O x é horizontal e o y é vertical. O passo aceita meio:
+py-2.5 vale 10.
+text-[15px] Valor arbitrário. Os colchetes escapam da escala quando o valor
+que você precisa não está nela. Use com parcimônia: cada
+colchete é uma exceção ao sistema.
+bg-superficie Token seu. Nasceu em theme.extend.colors. O prefixo diz onde
+aplicar (bg, text, border) e o sufixo é o nome que você deu.
+dark:bg-fundo Modificador. O que vem antes dos dois-pontos é a condição.
+Sem condição, a classe vale sempre.
+active:opacity-60 Modificador de estado. Vale enquanto o dedo pressiona. É o
+equivalente móvel do hover: da web.
+flex-1 Layout. O mesmo flex: 1 do encontro 3: ocupe o espaço que
+sobrar no eixo principal.
+EM UMA FRASE
+Propriedade, eixo, valor e modificador. Toda classe que você escreveu hoje cabe nessas quatro peças.
+5. Por que a paleta virou token, e não constante
+Você já tinha as cinco cores em src/constants/tema.ts desde o encontro 2, e elas funcionavam. A pergunta
+justa é o que se ganhou levando-as para o tailwind.config.js.
+n A constante serve a uma propriedade por vez: você escreve backgroundColor, color ou borderColor à mão
+em cada uso.
+n O token gera a família toda de classes de uma vez, e o editor completa os nomes enquanto você digita.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 22
+n O token também entra no par de tema sem esforço: bg-slate-100 dark:bg-superficie é uma linha. Com
+constante, seria um if.
+n O tema.ts continua no projeto, com a API_BASE_URL que o encontro 8 vai usar. O objeto CORES fica lá
+como documentação da paleta em TypeScript — não é lixo, é a mesma decisão escrita duas vezes, para
+dois públicos.
+as duas formas de dizer a mesma cor
+// encontro 2 e 3 — constante em TypeScript
+import { CORES } from '@/constants/tema';
+<View style={{ backgroundColor: CORES.superficie }} />
+// encontro 4 — token no tailwind.config.js
+<View className="bg-superficie" />
+// o token gera uma família inteira de classes:
+// bg-superficie text-superficie border-superficie
+// a constante gera só o valor; o resto é você quem escreve
+EM UMA FRASE
+Token é a constante levada até onde a ferramenta consegue aproveitá-la: uma cor declarada, dezenas de
+classes prontas.
+6. O que o botão de tema realmente faz
+O passo 23 tem quatro linhas de código e uma decisão de arquitetura escondida dentro. Vale abrir.
+você toca no ícone
+onPress dispara
+evento
+toggleColorScheme()
+do hook do NativeWind
+chama
+o NativeWind troca o tema
+de 'light' para 'dark'
+muda o estado
+o React redesenha a árvore
+Cabecalho, Filtro e cada Card
+dado desce
+cada classe dark: assume
+e a tela inteira muda
+n É o mesmo ciclo do favorito do encontro 3: um evento sobe, um estado muda, o React refaz a tela. A
+diferença é que o estado não é seu — mora dentro do NativeWind.
+n O hook se chama useColorScheme nos dois lugares, e são diferentes: o do react-native só lê a
+preferência do sistema; o do nativewind também escreve. Importar do lugar errado compila e não funciona.
+n A decisão escondida é o darkMode: 'class'. Com ele, o dono do tema é o seu código. Sem ele, é o sistema
+operacional, e o botão não tem o que trocar.
+n O tema escolhido não sobrevive ao fechamento do aplicativo: ele vive em memória. Guardá-lo é assunto
+do encontro 12, com AsyncStorage.
+
+--- PAGE BREAK ---
+
+Desenvolvimento para Dispositivos Móveis | Aula 04 — Laboratório Página 23
+EM UMA FRASE
+Trocar de tema é trocar um estado. Todo o resto é o React fazendo o que já fazia.
